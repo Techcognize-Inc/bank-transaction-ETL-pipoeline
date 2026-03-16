@@ -1,0 +1,73 @@
+pipeline {
+    agent any
+
+    environment {
+        PROJECT_DIR = "bank-tx-etl"
+    }
+
+    stages {
+
+        stage('Clone Repository') {
+            steps {
+                git 'https://github.com/YOUR_USERNAME/bank-tx-etl.git'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                pip install -r requirements.txt
+                '''
+            }
+        }
+
+        stage('Run Spark Ingestion Job') {
+            steps {
+                sh '''
+                spark-submit spark_jobs/ingest.py
+                '''
+            }
+        }
+
+        stage('Run Transform Job') {
+            steps {
+                sh '''
+                spark-submit spark_jobs/transform.py
+                '''
+            }
+        }
+
+        stage('Run Quality Checks') {
+            steps {
+                sh '''
+                spark-submit spark_jobs/quality_check.py
+                '''
+            }
+        }
+
+        stage('Run Aggregation Job') {
+            steps {
+                sh '''
+                spark-submit spark_jobs/aggregate.py
+                '''
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                sh '''
+                pytest tests/
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline executed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
+}
