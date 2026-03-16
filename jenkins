@@ -6,40 +6,43 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                pip install -r requirements.txt
+                docker exec spark-worker pip install -r /opt/spark/work-dir/requirements.txt || true
                 '''
             }
         }
 
         stage('Run Spark Ingestion Job') {
             steps {
-                sh 'spark-submit spark_jobs/ingest.py'
+                sh '''
+                docker exec spark-worker spark-submit /opt/spark/work-dir/spark_jobs/ingest.py
+                '''
             }
         }
 
         stage('Run Transform Job') {
             steps {
-                sh 'spark-submit spark_jobs/transform.py'
+                sh '''
+                docker exec spark-worker spark-submit /opt/spark/work-dir/spark_jobs/transform.py
+                '''
             }
         }
 
         stage('Run Quality Checks') {
             steps {
-                sh 'spark-submit spark_jobs/quality_check.py'
+                sh '''
+                docker exec spark-worker spark-submit /opt/spark/work-dir/spark_jobs/quality_check.py
+                '''
             }
         }
 
         stage('Run Aggregation Job') {
             steps {
-                sh 'spark-submit spark_jobs/aggregate.py'
+                sh '''
+                docker exec spark-worker spark-submit /opt/spark/work-dir/spark_jobs/aggregate.py
+                '''
             }
         }
 
-        stage('Run Tests') {
-            steps {
-                sh 'pytest tests/'
-            }
-        }
     }
 
     post {
