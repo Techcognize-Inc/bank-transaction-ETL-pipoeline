@@ -1,5 +1,2 @@
-# Ignore all data files
 data/*
-
-# BUT allow sample file for Jenkins pipeline
-!data/sample.csv
+!data/sample.csv  
