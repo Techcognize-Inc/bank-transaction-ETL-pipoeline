@@ -1,5 +1,2 @@
-# Ignore all data files
 data/*
-
-# Allow sample file
 !data/sample.csv
