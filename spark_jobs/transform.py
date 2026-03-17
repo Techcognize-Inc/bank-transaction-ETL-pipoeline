@@ -1,47 +1,61 @@
 import argparse
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
 
 
-def main(staging_path: str):
-    spark = (
-        SparkSession.builder
-        .appName("DE1_PaySim_Transform")
+def main(staging_table):
+
+    # ✅ Create Spark Session
+    spark = SparkSession.builder \
+        .appName("DE1_PaySim_Transform") \
         .getOrCreate()
-    )
 
-    jdbc_url = "jdbc:postgresql://postgres:5432/bankdb"
+    print("✅ Transform started")
+    print(f"Reading from table: {staging_table}")
 
-    # Read in JDBC partitions, similar to quality_check fix
-    df = (
-        spark.read.format("jdbc")
-        .option("url", jdbc_url)
-        .option("dbtable", "transactions")
-        .option("user", "etl")
-        .option("password", "etl")
-        .option("driver", "org.postgresql.Driver")
-        .option("partitionColumn", "step")
-        .option("lowerBound", 1)
-        .option("upperBound", 743)
-        .option("numPartitions", 4)
-        .option("fetchsize", 1000)
-        .load()
-    )
+    # ✅ PostgreSQL connection (FIXED)
+    url = "jdbc:postgresql://host.docker.internal:5432/bankdb"
 
-    # Avoid unnecessary large shuffle / pressure
-    (
-        df.repartition(2, "type")
-          .write
-          .mode("overwrite")
-          .partitionBy("type")
-          .parquet(staging_path)
-    )
+    properties = {
+        "user": "etl",
+        "password": "etl",
+        "driver": "org.postgresql.Driver"
+    }
 
-    print(f"Parquet written to: {staging_path}")
+    # ✅ Read data from PostgreSQL
+    df = spark.read \
+        .jdbc(
+            url=url,
+            table=staging_table,
+            properties=properties
+        )
+
+    print(f"Rows read: {df.count()}")
+    df.printSchema()
+
+    # ✅ Simple transformation (example)
+    transformed_df = df.withColumn("amount", col("amount") * 1.0)
+
+    print("✅ Transformation applied")
+
+    # ✅ Write transformed data back to PostgreSQL
+    transformed_df.write \
+        .jdbc(
+            url=url,
+            table="final_transactions",
+            mode="overwrite",
+            properties=properties
+        )
+
+    print("✅ Data successfully written to final_transactions")
+
     spark.stop()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--staging", required=True, help="Output parquet path inside container")
+    parser.add_argument("--staging", required=True, help="Staging table name")
+
     args = parser.parse_args()
+
     main(args.staging)
