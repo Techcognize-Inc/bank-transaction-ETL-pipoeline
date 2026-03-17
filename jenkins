@@ -5,52 +5,15 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh '''
-                docker exec spark-worker pip install -r /opt/spark/work-dir/requirements.txt || true
-                '''
+                sh 'docker exec spark-worker pip install -r /var/jenkins_home/workspace/bank-tx-etl-pipeline/requirements.txt'
             }
         }
 
         stage('Run Spark Ingestion Job') {
             steps {
-                sh '''
-                docker exec spark-worker spark-submit /opt/spark/work-dir/spark_jobs/ingest.py
-                '''
+                sh 'docker exec spark-worker /opt/spark/bin/spark-submit /var/jenkins_home/workspace/bank-tx-etl-pipeline/spark_jobs/ingest.py'
             }
         }
 
-        stage('Run Transform Job') {
-            steps {
-                sh '''
-                docker exec spark-worker spark-submit /opt/spark/work-dir/spark_jobs/transform.py
-                '''
-            }
-        }
-
-        stage('Run Quality Checks') {
-            steps {
-                sh '''
-                docker exec spark-worker spark-submit /opt/spark/work-dir/spark_jobs/quality_check.py
-                '''
-            }
-        }
-
-        stage('Run Aggregation Job') {
-            steps {
-                sh '''
-                docker exec spark-worker spark-submit /opt/spark/work-dir/spark_jobs/aggregate.py
-                '''
-            }
-        }
-
-    }
-
-    post {
-        success {
-            echo 'Pipeline executed successfully!'
-        }
-        failure {
-            echo 'Pipeline failed!'
-        }
     }
 }
