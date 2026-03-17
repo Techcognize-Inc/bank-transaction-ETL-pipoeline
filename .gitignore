@@ -1,18 +1,5 @@
-# datasets
-data/
+# Ignore all data files
+data/*
 
-# spark staging
-staging/
-
-# airflow logs
-airflow/logs/
-
-# parquet files
-*.parquet
-
-# python cache
-__pycache__/
-*.pyc
-
-# mac
-.DS_Store
+# BUT allow sample file for Jenkins pipeline
+!data/sample.csv
